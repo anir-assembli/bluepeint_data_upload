@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>File Upload with Signed URLs</title>
+</head>
+<body>
+    <h1>Upload Files or Folders</h1>
+    <input type="file" id="file-input" multiple webkitdirectory>
+    <button onclick="uploadFiles()">Upload</button>
+
+    <script>
+        async function getSignedUrl(filename) {
+            const response = await fetch('https://REGION-YOUR_PROJECT_ID.cloudfunctions.net/generate_signed_url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filename: filename })
+            });
+            const data = await response.json();
+            return data.url;  // Return the signed URL
+        }
+
+        async function uploadFiles() {
+            const files = document.getElementById('file-input').files;
+
+            if (files.length === 0) {
+                alert('Please select files or folders to upload.');
+                return;
+            }
+
+            for (let file of files) {
+                try {
+                    const signedUrl = await getSignedUrl(file.webkitRelativePath || file.name);
+                    
+                    // Upload the file to the signed URL
+                    await fetch(signedUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': file.type || 'application/octet-stream'
+                        },
+                        body: file
+                    });
+                    
+                    console.log(`${file.name} uploaded successfully.`);
+                } catch (error) {
+                    console.error(`Failed to upload ${file.name}:`, error);
+                }
+            }
+
+            alert('All files uploaded successfully!');
+        }
+    </script>
+</body>
+</html>
