@@ -54,12 +54,6 @@
         .form-container input[type="submit"]:hover {
             background: #218838;
         }
-        .file-description-container {
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
     </style>
 </head>
 <body>
@@ -92,6 +86,8 @@
         </div>
     </div>
     <script>
+        const API_KEY = 'AIzaSyAmht2QaKHVZzl9UC-hiyw7tpRnpwnHgK4';  // Replace with your actual API key
+
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -122,11 +118,12 @@
 
         async function uploadFile(file, folderName) {
             try {
-                // Get a signed URL from the Cloud Function
+                // Get a signed URL from the Cloud Function with the API key
                 const signedUrlResponse = await fetch('https://us-central1-blueprint-analysis.cloudfunctions.net/generate_signed_url', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY  // Include the API key in the header
                     },
                     body: JSON.stringify({ filename: `${folderName}/${file.webkitRelativePath || file.name}` })
                 });
@@ -169,36 +166,4 @@
         }
 
         function showFileDescriptions(files) {
-            const fileListDiv = document.getElementById('file-list');
-            fileListDiv.innerHTML = '';
-
-            files.forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.classList.add('file-description-container');
-                fileItem.innerHTML = `
-                    <label>${file.fileName}</label>
-                    <input type="text" placeholder="Describe this file">
-                `;
-                fileListDiv.appendChild(fileItem);
-            });
-
-            document.getElementById('file-description-section').style.display = 'block';
-        }
-
-        document.getElementById('save-descriptions').addEventListener('click', function() {
-            const descriptions = [];
-            const fileListDiv = document.getElementById('file-list').children;
-
-            for (let i = 0; i < fileListDiv.length; i++) {
-                const fileName = fileListDiv[i].querySelector('label').innerText;
-                const fileDescription = fileListDiv[i].querySelector('input').value;
-                descriptions.push({ fileName, fileDescription });
-            }
-
-            // Here you would send the descriptions to your backend or save them in your preferred storage
-            console.log('Descriptions saved:', descriptions);
-            alert('Descriptions saved successfully!');
-        });
-    </script>
-</body>
-</html>
+            const fileListDiv = document.getElementById
