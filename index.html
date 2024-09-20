@@ -166,4 +166,35 @@
         }
 
         function showFileDescriptions(files) {
-            const fileListDiv = document.getElementById
+            const fileListDiv = document.getElementById('file-list');
+            fileListDiv.innerHTML = '';
+
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.innerHTML = `
+                    <label>${file.name}</label>
+                    <input type="text" placeholder="Describe this file">
+                `;
+                fileListDiv.appendChild(fileItem);
+            });
+
+            document.getElementById('file-description-section').style.display = 'block';
+        }
+
+        document.getElementById('save-descriptions').addEventListener('click', function() {
+            const descriptions = [];
+            const fileListDiv = document.getElementById('file-list').children;
+
+            for (let i = 0; i < fileListDiv.length; i++) {
+                const fileName = fileListDiv[i].querySelector('label').innerText;
+                const fileDescription = fileListDiv[i].querySelector('input').value;
+                descriptions.push({ fileName, fileDescription });
+            }
+
+            google.script.run.withSuccessHandler(function() {
+                alert('Descriptions saved successfully!');
+            }).saveFileDescriptions(descriptions);
+        });
+    </script>
+</body>
+</html>
