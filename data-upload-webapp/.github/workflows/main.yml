@@ -1,0 +1,46 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint Code
+        run: |
+          pip install flake8
+          flake8 app.py
+
+      - name: Configure GCloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: blueprint-analysis
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_KEY }}
+          gcloud config set project your-google-cloud-project-id
+          gcloud config set run/region us-central1
+          gcloud builds submit --tag gcr.io/your-google-cloud-project-id/data-upload-webapp
+          gcloud run deploy data-upload-webapp \
+            --image gcr.io/your-google-cloud-project-id/data-upload-webapp \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
