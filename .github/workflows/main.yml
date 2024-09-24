@@ -1,3 +1,54 @@
+# name: CI/CD Pipeline
+
+# on:
+#   push:
+#     branches: [main]
+
+# jobs:
+#   build-deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v3
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.8'
+
+#       - name: Install Dependencies
+#         working-directory: ./data-upload-webapp
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+
+#       # - name: Lint Code
+#       #   working-directory: ./data-upload-webapp
+#       #   run: |
+#       #     pip install flake8
+#       #     flake8 run.py
+
+#       - name: Configure GCloud
+#         uses: google-github-actions/setup-gcloud@v1
+#         with:
+#           service_account_key: ${{ secrets.GCP_SA_KEY }}
+#           project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+#       - name: Deploy to Cloud Run
+#         working-directory: ./data-upload-webapp
+#         run: |
+#           gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_KEY }}
+#           gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+#           gcloud config set run/region us-central1
+#           gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp
+#           gcloud run deploy data-upload-webapp \
+#             --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp \
+#             --platform managed \
+#             --allow-unauthenticated \
+#             --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+
+
 name: CI/CD Pipeline
 
 on:
@@ -18,16 +69,23 @@ jobs:
           python-version: '3.8'
 
       - name: Install Dependencies
-        working-directory: ./data-upload-webapp
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+        working-directory: ./data-upload-webapp
 
+      # Optional: Re-enable Linting if desired
       # - name: Lint Code
-      #   working-directory: ./data-upload-webapp
       #   run: |
       #     pip install flake8
-      #     flake8 run.py
+      #     flake8 run.py app/
+      #   working-directory: ./data-upload-webapp
+
+      - name: Run Tests
+        run: |
+          pip install pytest
+          pytest tests/
+        working-directory: ./data-upload-webapp
 
       - name: Configure GCloud
         uses: google-github-actions/setup-gcloud@v1
@@ -35,15 +93,18 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Deploy to Cloud Run
-        working-directory: ./data-upload-webapp
+      - name: Build and Push Docker image
         run: |
-          gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_KEY }}
-          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
-          gcloud config set run/region us-central1
           gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp
-          gcloud run deploy data-upload-webapp \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp \
-            --platform managed \
-            --allow-unauthenticated \
-            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+        working-directory: ./data-upload-webapp
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: data-upload-webapp
+          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp
+          region: us-central1
+          allow-unauthenticated: true
+          env_vars: |
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
