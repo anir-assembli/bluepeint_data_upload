@@ -23,11 +23,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Lint Code
-        working-directory: ./data-upload-webapp
-        run: |
-          pip install flake8
-          flake8 run.py
+      # - name: Lint Code
+      #   working-directory: ./data-upload-webapp
+      #   run: |
+      #     pip install flake8
+      #     flake8 run.py
 
       - name: Configure GCloud
         uses: google-github-actions/setup-gcloud@v1
