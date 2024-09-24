@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Upload Webapp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Company Logo">
+        </div>
+
+        <h1>Data Upload</h1>
+    </header>    
+    <div class="form-container">
+        <h2>Upload Data</h2>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class="flashes">
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            
+            <input type="hidden" name="csrf_token" value = "{{ csrf_token() }}" /> 
+
+            <label for="name">Name (required):</label>
+            <input type="text" id="name" name="name" required>
+            
+            <label for="email">Email (required):</label>
+            <input type="email" id="email" name="email" required>
+            
+            <label for="description">General Description (optional):</label>
+            <textarea id="description" name="description"></textarea>
+            
+            <label for="files">Upload Files:</label>
+            <input type="file" id="files" name="files" multiple>
+
+            <label for="folders">Upload Folders:</label>
+            <input type="file" id="folders" name="folders" multiple webkitdirectory>
+
+            <input style="width: fit-content;"type="submit" value="Upload">
+        </form>
+    </div>
+</body>
+</html>
