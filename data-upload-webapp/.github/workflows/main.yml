@@ -36,11 +36,11 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_KEY }}
-          gcloud config set project your-google-cloud-project-id
+          gcloud config set project blueprint-analysis
           gcloud config set run/region us-central1
-          gcloud builds submit --tag gcr.io/your-google-cloud-project-id/data-upload-webapp
+          gcloud builds submit --tag gcr.io/blueprint-analysis/data-upload-webapp
           gcloud run deploy data-upload-webapp \
-            --image gcr.io/your-google-cloud-project-id/data-upload-webapp \
+            --image gcr.io/blueprint-analysis/data-upload-webapp \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},GOOGLE_APPLICATION_CREDENTIALS=${{ secrets.GCP_SA_KEY }}
