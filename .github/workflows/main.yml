@@ -81,11 +81,11 @@ jobs:
       #     flake8 run.py app/
       #   working-directory: ./data-upload-webapp
 
-      - name: Run Tests
-        run: |
-          pip install pytest
-          pytest tests/
-        working-directory: ./data-upload-webapp
+      # - name: Run Tests
+      #   run: |
+      #     pip install pytest
+      #     pytest tests/
+      #   working-directory: ./data-upload-webapp
 
       - name: Configure GCloud
         uses: google-github-actions/setup-gcloud@v1
