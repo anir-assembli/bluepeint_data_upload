@@ -98,6 +98,7 @@ jobs:
         with:
           # service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials: true
 
       - name: Verify gcloud Authentication
         run: |
@@ -111,5 +112,6 @@ jobs:
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},GOOGLE_ENTRYPOINT=run:app
+            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }} \
+            --build-env-vars GOOGLE_ENTRYPOINT=run:app
         working-directory: ./data-upload-webapp
