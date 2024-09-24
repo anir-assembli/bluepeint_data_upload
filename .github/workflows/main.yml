@@ -27,7 +27,7 @@ jobs:
         working-directory: ./data-upload-webapp
         run: |
           pip install flake8
-          flake8 app.py
+          flake8 run.py
 
       - name: Configure GCloud
         uses: google-github-actions/setup-gcloud@v1
