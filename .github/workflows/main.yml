@@ -93,18 +93,12 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Build and Push Docker image
-        run: |
-          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp
-        working-directory: ./data-upload-webapp
-
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v1
-        with:
-          service: data-upload-webapp
-          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/data-upload-webapp
-          region: us-central1
-          allow-unauthenticated: true
-          env_vars: |
-            SECRET_KEY=${{ secrets.SECRET_KEY }}
-            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+        run: |
+          gcloud run deploy data-upload-webapp \
+            --source ./ \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+        working-directory: ./data-upload-webapp
