@@ -29,10 +29,14 @@ GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME')
 GCS_PREFIX = 'public_data_upload/'  # Ensure it ends with '/'
 GOOGLE_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
-if not GCS_BUCKET_NAME or not GOOGLE_CREDENTIALS:
-    raise ValueError("GCS_BUCKET_NAME and GOOGLE_APPLICATION_CREDENTIALS must be set as environment variables.")
+if not GCS_BUCKET_NAME:
+    raise ValueError("GCS_BUCKET_NAME must be set as environment variables.")
 
-storage_client = storage.Client.from_service_account_json(GOOGLE_CREDENTIALS)
+storage_client = storage.Client()
+
+if GOOGLE_CREDENTIALS:
+    storage_client = storage.Client.from_service_account_json(GOOGLE_CREDENTIALS)
+
 bucket = storage_client.bucket(GCS_BUCKET_NAME)
 
 def allowed_file(filename):
