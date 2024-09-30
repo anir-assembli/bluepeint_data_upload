@@ -19,7 +19,7 @@ header {
     align-items: center;
     padding: 10px 0;
     border-bottom: 2px solid #ddd;
-    margin-bottom: 20px;
+    margin-bottom: 5px;
 }
 
 .logo img {
@@ -94,4 +94,63 @@ details[open] > summary::before {
 
 details > summary::before {
     content: "▶ "; /* Right arrow for closed details */
+}
+
+#progressContainer {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+}
+
+#uploadProgress {
+    width: 100%;
+    height: 20px;
+    margin-right: 10px;
+}
+
+#progressText {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: auto;
+    max-width: 300px;
+    z-index: 1000;
+}
+
+.flash {
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    color: #fff;
+    opacity: 1;
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.flash.success {
+    background-color: #28a745; /* Green */
+}
+
+.flash.error {
+    background-color: #dc3545; /* Red */
+}
+
+.flash.warning {
+    background-color: #ffc107; /* Yellow */
+    color: #212529; /* Dark text for better readability */
+}
+
+.flash.info {
+    background-color: #17a2b8; /* Blue */
+}
+
+/* Fade-Out Effect */
+.flash.fade-out {
+    opacity: 0;
+    transform: translateY(-20px);
 }

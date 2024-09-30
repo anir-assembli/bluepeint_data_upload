@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,27 +17,32 @@
     </header>    
     <div class="form-container">
       <h4>
-      <pre>
-Please use the form below to upload the Data Sets to the Assembli Secure Data Room. 
+      <pre>Please use the form below to upload the Data Sets to the Assembli Secure Data Room. 
 Data Sets:
   1. Plan Sets - Drawings
   2. Associated Takeoffs & Estimates
-  3. Associated Proposals or Contracts
-      </pre>
+  3. Associated Proposals or Contracts</pre>
     </h4>
     <h2>Upload Data</h2>
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <ul class="flashes">
-            {% for message in messages %}
-              <li>{{ message }}</li>
+            <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">
+                {{ message }}
+              </div>
             {% endfor %}
-            </ul>
+            </div>
           {% endif %}
         {% endwith %}
+        <div id="progressContainer" style="display: none;">
+          <progress id="uploadProgress" value="0" max="100"></progress>
+          <span id="progressText">Uploading...</span>
+      </div>
+
         <form id="uploadForm" method="post" enctype="multipart/form-data">
             
-            <input type="hidden" name="csrf_token" value = "{{ csrf_token() }}" /> 
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" /> 
 
             <label for="name">Name (required):</label>
             <input type="text" id="name" name="name" required>
@@ -53,8 +59,111 @@ Data Sets:
             <label for="folders">Upload Folders:</label>
             <input type="file" id="folders" name="folders" multiple webkitdirectory>
 
-            <input style="width: fit-content;"type="submit" value="Upload">
+            <input style="width: fit-content;" type="submit" value="Upload">
         </form>
     </div>
+
+
+    <!-- JavaScript for handling Local Storage and Flash Message Fade-Out -->
+    <script>
+
+document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('uploadForm');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const descriptionInput = document.getElementById('description');
+        const progressContainer = document.getElementById('progressContainer');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressText = document.getElementById('progressText');
+
+        // Load saved data from localStorage
+        if (localStorage.getItem('formData')) {
+            const formData = JSON.parse(localStorage.getItem('formData'));
+            nameInput.value = formData.name || '';
+            emailInput.value = formData.email || '';
+            descriptionInput.value = formData.description || '';
+        }
+
+        // Save data to localStorage on form submit
+        form.addEventListener('submit', function(event) {
+            const data = {
+                name: nameInput.value,
+                email: emailInput.value,
+                description: descriptionInput.value
+            };
+            localStorage.setItem('formData', JSON.stringify(data));
+        });
+
+        // Optional: Clear localStorage after successful upload
+        // {% if 'Files successfully uploaded.' in get_flashed_messages() %}
+        //     localStorage.removeItem('formData');
+        // {% endif %}
+
+        // Handle form submission with progress
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+
+            xhr.open('POST', '{{ url_for("upload") }}', true);
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    uploadProgress.value = percentComplete;
+                    progressText.textContent = `Uploading... ${Math.round(percentComplete)}%`;
+                }
+            };
+
+            xhr.onloadstart = function() {
+                progressContainer.style.display = 'block';
+                uploadProgress.value = 0;
+                progressText.textContent = 'Uploading...';
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    progressText.textContent = 'Upload complete!';
+                    // Optionally, redirect or refresh the page
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    progressText.textContent = 'Upload failed.';
+                }
+            };
+
+            xhr.onerror = function() {
+                progressText.textContent = 'Upload failed.';
+            };
+
+            xhr.send(formData);
+        });
+    });
+
+            // Fade out flash messages after 5 seconds
+        function fadeOutMessage() {
+            var messages = document.querySelectorAll('.alert');
+            messages.forEach(function(message) {
+                var opacity = 1;
+
+                function fade() {
+                    if ((opacity -= 0.1) <= 0) {
+                        message.style.display = 'none';
+                    } else {
+                        message.style.opacity = opacity;
+                        requestAnimationFrame(fade);
+                    }
+                }
+
+                fade();
+            });
+        }
+
+        // Start fading out the messages after 3 seconds
+        setTimeout(fadeOutMessage, 3000);
+    </script>
+
 </body>
 </html>

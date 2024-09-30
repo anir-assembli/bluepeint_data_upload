@@ -71,7 +71,7 @@ def upload():
 
             # Validate form data
             if not name or not email:
-                flash('Name and Email are required.')
+                flash('Name and Email are required.','warning')
                 return redirect(request.url)
 
             # Process files
@@ -79,7 +79,7 @@ def upload():
             for file in all_files:
                 if file and allowed_file(file.filename):
                     if file.content_length > app.config['MAX_CONTENT_LENGTH']:
-                        flash(f"File {file.filename} is too large.")
+                        flash(f"File {file.filename} is too large.",'warning')
                         return redirect(url_for('upload'))
                     filename = secure_filename(file.filename)
                     company_dir = f"{GCS_PREFIX}{name}/"
@@ -88,15 +88,15 @@ def upload():
                     upload_to_gcs(file, destination_blob_name)
 
                 elif file.filename!='':
-                    flash(f"File {file.filename} is not allowed.")
+                    flash(f"File {file.filename} is not allowed.",'warning')
                     return redirect(request.url)
 
-            flash('Files successfully uploaded.')
+            flash('Files successfully uploaded.','success')
             return redirect(url_for('upload'))
 
         except Exception as e:
             logging.error(f"Error during file upload: {e}")
-            flash('An error occurred during file upload.')
+            flash('An error occurred during file upload.','error')
             return redirect(request.url)
 
     return render_template('index.html')
