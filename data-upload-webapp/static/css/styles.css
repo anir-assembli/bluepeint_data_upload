@@ -28,6 +28,11 @@ header {
     margin-right: 20px; /* Increased margin for better spacing */
 }
 
+.data-set-img {
+    max-width: 33.3%;
+    max-height: 300px;
+}
+
 h1, h2, h3, h4, h5 {
     color: #2c3e50;
 }

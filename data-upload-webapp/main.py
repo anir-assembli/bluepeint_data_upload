@@ -18,7 +18,7 @@ csrf = CSRFProtect(app)
 
 # Security configurations
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')  # Replace with a secure key
-app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB file size limit
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024 # 1 GB file size limit
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
 
 # Logging configuration
