@@ -6,11 +6,7 @@ from werkzeug.utils import secure_filename
 from google.cloud import storage
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
-from datetime import datetime, timedelta, timezone
-from google.oauth2 import service_account  # Ensure proper credentials loading
-from google.auth import default
-from google.auth.exceptions import DefaultCredentialsError
-
+from datetime import datetime, timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,32 +21,16 @@ ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 
-
-SERVICE_ACCOUNT_FILE = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-try:
-    credentials, project = default()
-except DefaultCredentialsError:
-    # Fall back to service account file if default credentials fail
-    if SERVICE_ACCOUNT_FILE:
-        credentials = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE,
-            scopes=SCOPES
-        )
-    else:
-        raise ValueError("No valid credentials found")
-
 # Initialize Google Cloud Storage client
-storage_client = storage.Client(credentials=credentials)
+storage_client = storage.Client()
 
-# Initialize Google Cloud Storage client
+# Google Cloud Storage configurations
 GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME')
 GCS_PREFIX = 'public_data_upload/'  # Ensure it ends with '/'
-SERVICE_ACCOUNT_EMAIL = os.getenv('SERVICE_ACCOUNT_EMAIL')  # Email of the service account being used
 
 if not GCS_BUCKET_NAME:
-    raise ValueError("GCS_BUCKET_NAME must be set as environment variables.")
+    raise ValueError("GCS_BUCKET_NAME must be set as an environment variable.")
 
-# storage_client = storage.Client(credentials=credentials)
 bucket = storage_client.bucket(GCS_BUCKET_NAME)
 
 # Function to allow only certain file types
@@ -65,13 +45,13 @@ def sanitize_input(input_string):
     else:
         raise ValueError("Invalid input")
 
-# Updated function to generate signed URLs using google-cloud-storage's built-in method
-def generate_signed_url(bucket_name, object_name, expiration=timedelta(hours=1)):
+# Function to generate signed URLs
+def generate_signed_url(object_name, expiration=timedelta(hours=1)):
     try:
         blob = bucket.blob(object_name)
         signed_url = blob.generate_signed_url(
             version='v4',
-            expiration=expiration,  # Ensure expiration is timedelta, datetime, or int
+            expiration=expiration,
             method='PUT',
             content_type='application/octet-stream'
         )
@@ -109,8 +89,8 @@ def generate_signed_urls():
             # Construct the destination path in GCS
             object_name = f"{GCS_PREFIX}{name}/{relative_path}"
 
-            # Generate the signed URL using the updated function
-            signed_url = generate_signed_url(GCS_BUCKET_NAME, object_name)
+            # Generate the signed URL
+            signed_url = generate_signed_url(object_name)
             if signed_url:
                 signed_urls[relative_path] = signed_url
             else:
