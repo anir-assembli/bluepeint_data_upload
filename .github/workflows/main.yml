@@ -33,10 +33,6 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Create Service Account Key File
-        run: |
-          echo '${{ secrets.GCP_SA_KEY }}' > ${{ github.workspace }}/service-account-key.json
-
       - name: Deploy to Cloud Run
         working-directory: ./data-upload-webapp
         run: |
@@ -45,4 +41,4 @@ jobs:
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},GOOGLE_APPLICATION_CREDENTIALS=/workspace/service-account-key.json
+            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}

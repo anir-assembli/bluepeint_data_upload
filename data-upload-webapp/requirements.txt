@@ -7,4 +7,4 @@ google-cloud-iam
 google-auth
 google-auth-httplib2
 gunicorn
-
+google-cloud-secret-manager

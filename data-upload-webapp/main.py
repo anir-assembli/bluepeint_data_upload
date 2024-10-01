@@ -5,35 +5,48 @@ from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from google.cloud import storage
 from google.oauth2 import service_account
-from google.auth.transport.requests import Request
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from google.cloud import iam_credentials_v1
+from datetime import timedelta
+from google.cloud import secretmanager
+import json
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY')
+
 csrf = CSRFProtect(app)
 
-# Security configurations
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
-
-# Logging configuration
 logging.basicConfig(level=logging.INFO)
+
+# Function to access the secret manager
+def access_secret_version(secret_id, version_id="latest"):
+    project_id = os.getenv('GCP_PROJECT_ID')
+    if not project_id:
+        raise ValueError("GCP_PROJECT_ID is not set. Ensure it's set as an environment variable.")
+        
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode("UTF-8")
 
 # Initialize Google Cloud Storage client
 def get_credentials():
-    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-    if credentials_path and os.path.exists(credentials_path):
-        return service_account.Credentials.from_service_account_file(credentials_path)
-    else:
-        # Fall back to default credentials if the file doesn't exist
+    try:
+        secret_content = access_secret_version("sme-webapp-service-account-key")
+        service_account_info = json.loads(secret_content)
+        return service_account.Credentials.from_service_account_info(service_account_info)
+    except Exception as e:
+        app.logger.error(f"Error accessing secret: {str(e)}")
         return None
 
 credentials = get_credentials()
+if credentials is None:
+    raise ValueError("Failed to retrieve valid credentials.")
+
 storage_client = storage.Client(credentials=credentials)
 
 # Google Cloud Storage configurations
@@ -47,45 +60,25 @@ bucket = storage_client.bucket(GCS_BUCKET_NAME)
 
 # Function to allow only certain file types
 def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Function to sanitize user input
 def sanitize_input(input_string):
-    if re.match(r"^[-a-zA-Z0-9_.@\ ]+$", input_string):
+    if re.match(r"^[-a-zA-Z0-9_.@ ]+$", input_string):
         return input_string.strip()
     else:
         raise ValueError("Invalid input")
 
-# Function to sign a blob using the IAM API
-def sign_blob(blob_name):
-    iam_client = iam_credentials_v1.IAMCredentialsClient(credentials=credentials)
-    service_account_email = credentials.service_account_email
-    resource_name = f"projects/-/serviceAccounts/{service_account_email}"
-    
-    # The string to sign is the blob name
-    encoded_blob_name = blob_name.encode('utf-8')
-    
-    response = iam_client.sign_blob(
-        request={
-            "name": resource_name,
-            "payload": encoded_blob_name,
-        }
-    )
-    
-    return response.signed_blob
-
-# Function to generate signed URLs using the signed blob
+# Function to generate signed URLs directly using Google Cloud Storage
 def generate_signed_url(object_name, expiration=timedelta(hours=1)):
     try:
         blob = bucket.blob(object_name)
         
-        # Generate the signed URL
+        # Generate the signed URL directly without manual blob signing
         signed_url = blob.generate_signed_url(
             version="v4",
             expiration=expiration,
             method="PUT",
-            credentials=credentials
         )
         return signed_url
     except Exception as e:
@@ -102,12 +95,15 @@ def index():
 def generate_signed_urls():
     try:
         data = request.get_json()
+        if not data:
+            raise ValueError("No data provided in the request")
+
         name = sanitize_input(data.get('name'))
         email = sanitize_input(data.get('email'))
         files = data.get('files')  # List of file paths
 
         if not name or not email or not files:
-            return jsonify({'error': 'Invalid input'}), 400
+            return jsonify({'error': 'Invalid input: name, email, or files are missing'}), 400
 
         signed_urls = {}
 
@@ -126,7 +122,7 @@ def generate_signed_urls():
             if signed_url:
                 signed_urls[relative_path] = signed_url
             else:
-                return jsonify({'error': 'Error generating signed URL'}), 500
+                return jsonify({'error': f'Error generating signed URL for {relative_path}'}), 500
 
         return jsonify({'signedUrls': signed_urls}), 200
 
