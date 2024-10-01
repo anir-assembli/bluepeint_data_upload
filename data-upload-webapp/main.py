@@ -4,6 +4,8 @@ import logging
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from google.cloud import storage
+from google.auth import compute_engine
+from google.auth.transport.requests import Request
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -21,8 +23,9 @@ ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 
-# Initialize Google Cloud Storage client
-storage_client = storage.Client()
+# Initialize Google Cloud Storage client with credentials from Compute Engine metadata
+credentials = compute_engine.Credentials()
+storage_client = storage.Client(credentials=credentials)
 
 # Google Cloud Storage configurations
 GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME')
@@ -45,15 +48,40 @@ def sanitize_input(input_string):
     else:
         raise ValueError("Invalid input")
 
-# Function to generate signed URLs
+# Function to sign a blob using the signBlob API
+def sign_blob(blob_to_sign):
+    # Refresh the credentials to ensure they are valid
+    credentials.refresh(Request())
+
+    # Get the service account email from the credentials
+    service_account_email = credentials.service_account_email
+
+    # Use the signBlob API to sign the blob
+    client = storage_client.iam_client
+    response = client.sign_blob(
+        request={
+            "name": f"projects/-/serviceAccounts/{service_account_email}",
+            "payload": blob_to_sign
+        }
+    )
+    return response.signed_blob
+
+# Function to generate signed URLs using the signed blob
 def generate_signed_url(object_name, expiration=timedelta(hours=1)):
     try:
         blob = bucket.blob(object_name)
+        signed_blob = sign_blob(object_name)
+
+        # Generate the signed URL using the signed blob and required credentials
         signed_url = blob.generate_signed_url(
-            version='v4',
             expiration=expiration,
             method='PUT',
-            content_type='application/octet-stream'
+            credentials=credentials,
+            service_account_email=credentials.service_account_email,
+            access_token=credentials.token,
+            virtual_hosted_style=True,
+            version="v4",
+            signer=sign_blob  # Use the sign_blob function as the signer
         )
         return signed_url
     except Exception as e:
