@@ -112,5 +112,5 @@ jobs:
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+            --set-env-vars SECRET_KEY=${{ secrets.SECRET_KEY }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},SERVICE_ACCOUNT_EMAIL=${{ secrets.SERVICE_ACCOUNT_EMAIL }},GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
         working-directory: ./data-upload-webapp
