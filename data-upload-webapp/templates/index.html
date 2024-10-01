@@ -1,10 +1,11 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Data Upload Webapp</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
 </head>
 <body>
 
@@ -12,164 +13,237 @@
         <div class="logo">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Company Logo">
         </div>
-
         <h1>Data Upload</h1>
-    </header>    
+    </header>
+
     <div class="form-container">
-      <h4>
-      <pre>Please use the form below to upload the Data Sets to the Assembli Secure Data Room. 
+        <h4>
+            <pre>Please use the form below to upload the Data Sets to the Assembli Secure Data Room.
 Data Sets:
   1. Plan Sets - Drawings
   2. Associated Takeoffs & Estimates
   3. Associated Proposals or Contracts</pre>
-    </h4>
+        </h4>
 
-    <img class="data-set-img" src="{{ url_for('static', filename='sample-plan-set.png') }}" alt="Company Logo">
-    <img class="data-set-img" src="{{ url_for('static', filename='takeoff-estimates.png') }}" alt="Company Logo">
-    <img class="data-set-img" src="{{ url_for('static', filename='pricing-material-labor.png') }}" alt="Company Logo">
+        <img class="data-set-img" src="{{ url_for('static', filename='sample-plan-set.png') }}" alt="Sample Plan Set">
+        <img class="data-set-img" src="{{ url_for('static', filename='takeoff-estimates.png') }}" alt="Takeoff Estimates">
+        <img class="data-set-img" src="{{ url_for('static', filename='pricing-material-labor.png') }}" alt="Pricing Material Labor">
 
+        <h2>Upload Data</h2>
 
-    <h2>Upload Data</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="flash-messages">
-            {% for category, message in messages %}
-              <div class="flash {{ category }}">
-                {{ message }}
-              </div>
-            {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
-        <div id="progressContainer" style="display: none;">
-          <progress id="uploadProgress" value="0" max="100"></progress>
-          <span id="progressText">Uploading...</span>
-      </div>
+        <div id="flash-messages"></div>
 
-        <form id="uploadForm" method="post" enctype="multipart/form-data">
-            
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" /> 
+        <form id="uploadForm">
+
+          <div id="progressContainer" style="display: none;">
+            <progress id="uploadProgress" value="0" max="100"></progress>
+            <span id="progressText">Uploading...</span>
+        </div>
 
             <label for="name">Name (required):</label>
             <input type="text" id="name" name="name" required>
-            
+
             <label for="email">Email (required):</label>
             <input type="email" id="email" name="email" required>
-            
+
             <label for="description">General Description (optional):</label>
             <textarea id="description" name="description"></textarea>
-            
-            <label for="files">Upload Files:</label>
-            <input type="file" id="files" name="files" multiple>
 
-            <label for="folders">Upload Folders:</label>
-            <input type="file" id="folders" name="folders" multiple webkitdirectory>
+            <!-- Separate file input for individual files -->
+            <label for="fileInput">Upload Files:</label>
+            <input type="file" id="fileInput" name="files" multiple>
 
-            <input style="width: fit-content;" type="submit" value="Upload">
+            <!-- Separate file input for folders -->
+            <label for="folderInput">Upload Folders:</label>
+            <input type="file" id="folderInput" name="folders" multiple webkitdirectory directory>
+
+            <input type="submit" value="Upload">
         </form>
+
     </div>
 
-
-    <!-- JavaScript for handling Local Storage and Flash Message Fade-Out -->
+    <!-- JavaScript for handling Session Storage and File Uploads -->
     <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          const form = document.getElementById('uploadForm');
+          const nameInput = document.getElementById('name');
+          const emailInput = document.getElementById('email');
+          const descriptionInput = document.getElementById('description');
+          const fileInput = document.getElementById('fileInput');
+          const folderInput = document.getElementById('folderInput');
+          const progressContainer = document.getElementById('progressContainer');
+          const uploadProgress = document.getElementById('uploadProgress');
+          const progressText = document.getElementById('progressText');
 
-document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('uploadForm');
-        const nameInput = document.getElementById('name');
-        const emailInput = document.getElementById('email');
-        const descriptionInput = document.getElementById('description');
-        const progressContainer = document.getElementById('progressContainer');
-        const uploadProgress = document.getElementById('uploadProgress');
-        const progressText = document.getElementById('progressText');
+          // Load saved data from sessionStorage
+          if (sessionStorage.getItem('formData')) {
+              const formData = JSON.parse(sessionStorage.getItem('formData'));
+              nameInput.value = formData.name || '';
+              emailInput.value = formData.email || '';
+              descriptionInput.value = formData.description || '';
+          }
 
-        // Load saved data from localStorage
-        if (localStorage.getItem('formData')) {
-            const formData = JSON.parse(localStorage.getItem('formData'));
-            nameInput.value = formData.name || '';
-            emailInput.value = formData.email || '';
-            descriptionInput.value = formData.description || '';
-        }
+          // Function to get CSRF token from meta tag
+          function getCSRFToken() {
+              const meta = document.querySelector('meta[name="csrf-token"]');
+              return meta ? meta.getAttribute('content') : '';
+          }
 
-        // Save data to localStorage on form submit
-        form.addEventListener('submit', function(event) {
-            const data = {
-                name: nameInput.value,
-                email: emailInput.value,
-                description: descriptionInput.value
-            };
-            localStorage.setItem('formData', JSON.stringify(data));
-        });
+          // Handle form submission
+          form.addEventListener('submit', async function(event) {
+              event.preventDefault(); // Prevent default form submission
 
-        // Optional: Clear localStorage after successful upload
-        // {% if 'Files successfully uploaded.' in get_flashed_messages() %}
-        //     localStorage.removeItem('formData');
-        // {% endif %}
+              const name = nameInput.value.trim();
+              const email = emailInput.value.trim();
+              const description = descriptionInput.value.trim();
+              const files = fileInput.files;
+              const folders = folderInput.files;
 
-        // Handle form submission with progress
-        form.addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent default form submission
+              // Validate inputs
+              if (!name || !email || (files.length === 0 && folders.length === 0)) {
+                  alert('Name, Email, and at least one file or folder are required.');
+                  return;
+              }
 
-            const formData = new FormData(form);
-            const xhr = new XMLHttpRequest();
+              // Prepare file data with relative paths
+              const fileData = [];
 
-            xhr.open('POST', '{{ url_for("upload") }}', true);
+              // Handle individual files
+              for (let i = 0; i < files.length; i++) {
+                  const file = files[i];
+                  fileData.push({
+                      name: file.name,
+                      relativePath: file.name  // No folder structure
+                  });
+              }
 
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    uploadProgress.value = percentComplete;
-                    progressText.textContent = `Uploading... ${Math.round(percentComplete)}%`;
-                }
-            };
+              // Handle folder files
+              for (let i = 0; i < folders.length; i++) {
+                  const file = folders[i];
+                  // webkitRelativePath provides the folder structure
+                  const relativePath = file.webkitRelativePath || file.name;
+                  fileData.push({
+                      name: file.name,
+                      relativePath: relativePath
+                  });
+              }
 
-            xhr.onloadstart = function() {
-                progressContainer.style.display = 'block';
-                uploadProgress.value = 0;
-                progressText.textContent = 'Uploading...';
-            };
+              if (fileData.length === 0) {
+                  alert('No files selected for upload.');
+                  return;
+              }
 
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    progressText.textContent = 'Upload complete!';
-                    // Optionally, redirect or refresh the page
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                } else {
-                    progressText.textContent = 'Upload failed.';
-                }
-            };
+              // Save form data to sessionStorage
+              const formDataToStore = {
+                  name: name,
+                  email: email,
+                  description: description
+              };
+              sessionStorage.setItem('formData', JSON.stringify(formDataToStore));
 
-            xhr.onerror = function() {
-                progressText.textContent = 'Upload failed.';
-            };
+              // Show progress container
+              progressContainer.style.display = 'block';
+              uploadProgress.value = 0;
+              progressText.textContent = 'Uploading... 0%';
 
-            xhr.send(formData);
-        });
-    });
+              try {
+                  // Request signed URLs from the server
+                  const response = await fetch('/generate_signed_urls', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': getCSRFToken()  // Include CSRF token in headers
+                      },
+                      body: JSON.stringify({
+                          name: name,
+                          email: email,
+                          files: fileData
+                      })
+                  });
 
-            // Fade out flash messages after 5 seconds
-        function fadeOutMessage() {
-            var messages = document.querySelectorAll('.alert');
-            messages.forEach(function(message) {
-                var opacity = 1;
+                  const data = await response.json();
 
-                function fade() {
-                    if ((opacity -= 0.1) <= 0) {
-                        message.style.display = 'none';
-                    } else {
-                        message.style.opacity = opacity;
-                        requestAnimationFrame(fade);
-                    }
-                }
+                  if (!response.ok) {
+                      alert(`Error: ${data.error || 'Unknown error occurred while generating signed URLs.'}`);
+                      progressContainer.style.display = 'none';
+                      return;
+                  }
 
-                fade();
-            });
-        }
+                  const signedUrls = data.signedUrls;
 
-        // Start fading out the messages after 3 seconds
-        setTimeout(fadeOutMessage, 3000);
-    </script>
+                  // Upload files directly to GCS using the signed URLs
+                  for (let i = 0; i < fileData.length; i++) {
+                      const file = (i < files.length) ? files[i] : folders[i - files.length];
+                      const relativePath = fileData[i].relativePath;
+                      const url = signedUrls[relativePath];
+
+                      if (!url) {
+                          alert(`No signed URL for ${relativePath}`);
+                          continue;
+                      }
+
+                      const uploadResponse = await fetch(url, {
+                          method: 'PUT',
+                          headers: {
+                              'Content-Type': 'application/octet-stream'  // Must match the signed URL's Content-Type
+                          },
+                          body: file
+                      });
+
+                      if (!uploadResponse.ok) {
+                          const errorText = await uploadResponse.text();
+                          alert(`Failed to upload ${relativePath}. Server responded with: ${errorText}`);
+                          progressContainer.style.display = 'none';
+                          return;
+                      }
+
+                      // Update progress
+                      const percentComplete = ((i + 1) / fileData.length) * 100;
+                      uploadProgress.value = percentComplete;
+                      progressText.textContent = `Uploading... ${Math.round(percentComplete)}%`;
+                  }
+
+                  // After successful upload, optionally clear sessionStorage
+                  // Uncomment the line below if you want to clear data after upload
+                  // sessionStorage.removeItem('formData');
+
+                  progressText.textContent = 'Upload complete!';
+                  alert('Files and folders uploaded successfully.');
+
+                  // Optionally, reset the form
+                  form.reset();
+                  progressContainer.style.display = 'none';
+
+              } catch (error) {
+                  console.error('Error:', error);
+                  alert(`An error occurred during file upload: ${error.message}`);
+                  progressContainer.style.display = 'none';
+              }
+          });
+
+          // Fade out flash messages after 5 seconds
+          function fadeOutMessage() {
+              var messages = document.querySelectorAll('.flash');
+              messages.forEach(function(message) {
+                  var opacity = 1;
+
+                  function fade() {
+                      if ((opacity -= 0.1) <= 0) {
+                          message.style.display = 'none';
+                      } else {
+                          message.style.opacity = opacity;
+                          requestAnimationFrame(fade);
+                      }
+                  }
+
+                  fade();
+              });
+          }
+
+          // Start fading out the messages after 3 seconds
+          setTimeout(fadeOutMessage, 3000);
+      });
+  </script>
 
 </body>
 </html>

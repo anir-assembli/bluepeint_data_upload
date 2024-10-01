@@ -1,17 +1,9 @@
+/* static/css/styles.css */
 body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 20px;
     background-color: #fafafa;
-}
-
-.alert {
-    padding: 15px;
-    background-color: #0e1996; 
-    color: white;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    max-width: fit-content;
 }
 
 header {
@@ -25,7 +17,7 @@ header {
 .logo img {
     max-width: 50px;
     height: auto;
-    margin-right: 20px; /* Increased margin for better spacing */
+    margin-right: 20px;
 }
 
 .data-set-img {
@@ -47,20 +39,20 @@ h1, h2, h3, h4, h5 {
 
 form {
     display: flex;
-    flex-direction: column; /* Align form elements vertically */
+    flex-direction: column;
 }
 
 label {
-    margin-top: 10px; /* Space above each label */
+    margin-top: 10px;
 }
 
 input[type='text'], input[type='email'], input[type='file'], textarea {
     padding: 10px;
-    margin-top: 5px; /* Space between label and input */
-    margin-bottom: 15px; /* Space below input */
+    margin-top: 5px;
+    margin-bottom: 15px;
     border-radius: 4px;
     border: 1px solid #ddd;
-    width: calc(100% - 22px); /* Full width minus padding */
+    width: calc(100% - 22px);
 }
 
 input[type='submit'] {
@@ -70,35 +62,12 @@ input[type='submit'] {
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease-in-out; /* Smooth transition */
+    transition: background-color 0.3s ease-in-out;
+    width: fit-content;
 }
 
 input[type='submit']:hover {
-    background-color: #3498db; /* Lighter blue on hover */
-}
-
-input[type='checkbox'] {
-    margin-right: 10px; /* Space between checkbox and label text */
-}
-
-.feedback-input {
-    margin-left: 20px; /* Indent feedback input */
-}
-
-details > summary {
-    cursor: pointer; /* Pointer cursor for clickable summary */
-}
-
-details > summary::-webkit-details-marker {
-    display: none; /* Remove default marker */
-}
-
-details[open] > summary::before {
-    content: "▼ "; /* Down arrow for open details */
-}
-
-details > summary::before {
-    content: "▶ "; /* Right arrow for closed details */
+    background-color: #3498db;
 }
 
 #progressContainer {
@@ -116,46 +85,4 @@ details > summary::before {
 #progressText {
     font-size: 14px;
     color: #2c3e50;
-}
-
-.flash-messages {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: auto;
-    max-width: 300px;
-    z-index: 1000;
-}
-
-.flash {
-    padding: 15px 20px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    color: #fff;
-    opacity: 1;
-    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.flash.success {
-    background-color: #28a745; /* Green */
-}
-
-.flash.error {
-    background-color: #dc3545; /* Red */
-}
-
-.flash.warning {
-    background-color: #ffc107; /* Yellow */
-    color: #212529; /* Dark text for better readability */
-}
-
-.flash.info {
-    background-color: #17a2b8; /* Blue */
-}
-
-/* Fade-Out Effect */
-.flash.fade-out {
-    opacity: 0;
-    transform: translateY(-20px);
 }
