@@ -6,4 +6,5 @@ python-dotenv
 google-cloud-iam
 google-auth
 google-auth-httplib2
+gunicorn
 

@@ -25,8 +25,15 @@ ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
 logging.basicConfig(level=logging.INFO)
 
 # Initialize Google Cloud Storage client
-credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-credentials = service_account.Credentials.from_service_account_file(credentials_path)
+def get_credentials():
+    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    if credentials_path and os.path.exists(credentials_path):
+        return service_account.Credentials.from_service_account_file(credentials_path)
+    else:
+        # Fall back to default credentials if the file doesn't exist
+        return None
+
+credentials = get_credentials()
 storage_client = storage.Client(credentials=credentials)
 
 # Google Cloud Storage configurations
