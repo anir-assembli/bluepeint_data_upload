@@ -25,6 +25,8 @@ ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 
+
+SERVICE_ACCOUNT_FILE = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 try:
     credentials, project = default()
 except DefaultCredentialsError:
