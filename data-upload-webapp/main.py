@@ -4,11 +4,12 @@ import logging
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from google.cloud import storage
-from google.auth import compute_engine
+from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from google.cloud import iam_credentials_v1
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,8 +24,9 @@ ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 
-# Initialize Google Cloud Storage client with credentials from Compute Engine metadata
-credentials = compute_engine.Credentials()
+# Initialize Google Cloud Storage client
+credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+credentials = service_account.Credentials.from_service_account_file(credentials_path)
 storage_client = storage.Client(credentials=credentials)
 
 # Google Cloud Storage configurations
@@ -48,40 +50,35 @@ def sanitize_input(input_string):
     else:
         raise ValueError("Invalid input")
 
-# Function to sign a blob using the signBlob API
-def sign_blob(blob_to_sign):
-    # Refresh the credentials to ensure they are valid
-    credentials.refresh(Request())
-
-    # Get the service account email from the credentials
+# Function to sign a blob using the IAM API
+def sign_blob(blob_name):
+    iam_client = iam_credentials_v1.IAMCredentialsClient(credentials=credentials)
     service_account_email = credentials.service_account_email
-
-    # Use the signBlob API to sign the blob
-    client = storage_client.iam_client
-    response = client.sign_blob(
+    resource_name = f"projects/-/serviceAccounts/{service_account_email}"
+    
+    # The string to sign is the blob name
+    encoded_blob_name = blob_name.encode('utf-8')
+    
+    response = iam_client.sign_blob(
         request={
-            "name": f"projects/-/serviceAccounts/{service_account_email}",
-            "payload": blob_to_sign
+            "name": resource_name,
+            "payload": encoded_blob_name,
         }
     )
+    
     return response.signed_blob
 
 # Function to generate signed URLs using the signed blob
 def generate_signed_url(object_name, expiration=timedelta(hours=1)):
     try:
         blob = bucket.blob(object_name)
-        signed_blob = sign_blob(object_name)
-
-        # Generate the signed URL using the signed blob and required credentials
+        
+        # Generate the signed URL
         signed_url = blob.generate_signed_url(
-            expiration=expiration,
-            method='PUT',
-            credentials=credentials,
-            service_account_email=credentials.service_account_email,
-            access_token=credentials.token,
-            virtual_hosted_style=True,
             version="v4",
-            signer=sign_blob  # Use the sign_blob function as the signer
+            expiration=expiration,
+            method="PUT",
+            credentials=credentials
         )
         return signed_url
     except Exception as e:

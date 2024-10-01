@@ -3,6 +3,7 @@ Flask-WTF>=1.1.1
 google-cloud-storage>=2.9.0
 WTForms>=3.0.1
 python-dotenv
-
-
+google-cloud-iam
+google-auth
+google-auth-httplib2
 
