@@ -152,6 +152,11 @@ from google.cloud import storage
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from datetime import timedelta
+from google.auth.transport.requests import Request
+import google.auth
+from google.oauth2 import service_account
+
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -175,6 +180,8 @@ if not GCS_BUCKET_NAME:
 
 storage_client = storage.Client()
 bucket = storage_client.bucket(GCS_BUCKET_NAME)
+
+SCOPES = ['https://www.googleapis.com/auth/devstorage.read_write']
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -204,6 +211,10 @@ def generate_signed_urls():
         if not name or not email or not files:
             return jsonify({'error': 'Invalid input'}), 400
 
+        # Obtain the credentials with required scopes
+        credentials, project_id = google.auth.default(scopes=SCOPES)
+        credentials.refresh(Request())  # Refresh the credentials
+
         signed_urls = {}
 
         for file_info in files:
@@ -222,7 +233,8 @@ def generate_signed_urls():
                 version="v4",
                 expiration=timedelta(hours=1),
                 method="PUT",
-                content_type='application/octet-stream'
+                content_type='application/octet-stream',
+                credentials=credentials  # Pass the credentials here
             )
 
             signed_urls[relative_path] = url
@@ -232,7 +244,6 @@ def generate_signed_urls():
     except Exception as e:
         logging.error(f"Error generating signed URLs: {e}")
         return jsonify({'error': 'Could not generate signed URLs'}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=False)
