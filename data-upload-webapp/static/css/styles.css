@@ -11,7 +11,7 @@ header {
     align-items: center;
     padding: 10px 0;
     border-bottom: 2px solid #ddd;
-    margin-bottom: 5px;
+    margin-bottom: 20px; /* Increased margin for better spacing */
 }
 
 .logo img {
@@ -20,9 +20,16 @@ header {
     margin-right: 20px;
 }
 
+.images-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
 .data-set-img {
-    max-width: 33.3%;
+    max-width: 32%;
     max-height: 300px;
+    object-fit: cover;
 }
 
 h1, h2, h3, h4, h5 {
@@ -44,6 +51,7 @@ form {
 
 label {
     margin-top: 10px;
+    font-weight: bold;
 }
 
 input[type='text'], input[type='email'], input[type='file'], textarea {
@@ -52,7 +60,8 @@ input[type='text'], input[type='email'], input[type='file'], textarea {
     margin-bottom: 15px;
     border-radius: 4px;
     border: 1px solid #ddd;
-    width: calc(100% - 22px);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 input[type='submit'] {
@@ -85,4 +94,36 @@ input[type='submit']:hover {
 #progressText {
     font-size: 14px;
     color: #2c3e50;
+}
+
+/* New styles for file upload row */
+.file-upload-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px; /* Space between each upload section */
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.file-upload-section {
+    flex: 1; /* Allow each section to take equal space */
+    min-width: 200px; /* Prevents sections from becoming too narrow */
+}
+
+.file-upload-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .file-upload-row {
+        flex-direction: column;
+    }
+
+    .data-set-img {
+        max-width: 100%;
+        margin-bottom: 10px;
+    }
 }

@@ -5,7 +5,6 @@
     <title>Data Upload Webapp</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
 </head>
 <body>
 
@@ -25,9 +24,11 @@ Data Sets:
   3. Associated Proposals or Contracts</pre>
         </h4>
 
-        <img class="data-set-img" src="{{ url_for('static', filename='sample-plan-set.png') }}" alt="Sample Plan Set">
-        <img class="data-set-img" src="{{ url_for('static', filename='takeoff-estimates.png') }}" alt="Takeoff Estimates">
-        <img class="data-set-img" src="{{ url_for('static', filename='pricing-material-labor.png') }}" alt="Pricing Material Labor">
+        <div class="images-row">
+            <img class="data-set-img" src="{{ url_for('static', filename='sample-plan-set.png') }}" alt="Sample Plan Set">
+            <img class="data-set-img" src="{{ url_for('static', filename='takeoff-estimates.png') }}" alt="Takeoff Estimates">
+            <img class="data-set-img" src="{{ url_for('static', filename='pricing-material-labor.png') }}" alt="Pricing Material Labor">
+        </div>
 
         <h2>Upload Data</h2>
 
@@ -35,10 +36,10 @@ Data Sets:
 
         <form id="uploadForm">
 
-          <div id="progressContainer" style="display: none;">
-            <progress id="uploadProgress" value="0" max="100"></progress>
-            <span id="progressText">Uploading...</span>
-        </div>
+            <div id="progressContainer" style="display: none;">
+                <progress id="uploadProgress" value="0" max="100"></progress>
+                <span id="progressText">Uploading...</span>
+            </div>
 
             <label for="name">Company Name (required):</label>
             <input type="text" id="name" name="name" required>
@@ -49,13 +50,22 @@ Data Sets:
             <label for="description">General Description (optional):</label>
             <textarea id="description" name="description"></textarea>
 
-            <!-- Separate file input for individual files -->
-            <label for="fileInput">Upload Files:</label>
-            <input type="file" id="fileInput" name="files" multiple>
+            <!-- Single Row for Three File Uploads -->
+            <div class="file-upload-row">
+                <div class="file-upload-section">
+                    <label for="planSetFiles">Plan Set Files:</label>
+                    <input type="file" id="planSetFiles" name="planSetFiles" multiple>
+                </div>
 
-            <!-- Separate file input for folders -->
-            <label for="folderInput">Upload Folders:</label>
-            <input type="file" id="folderInput" name="folders" multiple webkitdirectory directory>
+                <div class="file-upload-section">
+                    <label for="takeOffFiles">Take Off Files:</label>
+                    <input type="file" id="takeOffFiles" name="takeOffFiles" multiple>
+                </div>
+                <div class="file-upload-section">
+                  <label for="proposalFiles">Proposal Files:</label>
+                  <input type="file" id="proposalFiles" name="proposalFiles" multiple>
+              </div>
+          </div>
 
             <input type="submit" value="Upload">
         </form>
@@ -69,8 +79,9 @@ Data Sets:
           const nameInput = document.getElementById('name');
           const emailInput = document.getElementById('email');
           const descriptionInput = document.getElementById('description');
-          const fileInput = document.getElementById('fileInput');
-          const folderInput = document.getElementById('folderInput');
+          const proposalFilesInput = document.getElementById('proposalFiles');
+          const planSetFilesInput = document.getElementById('planSetFiles');
+          const takeOffFilesInput = document.getElementById('takeOffFiles');
           const progressContainer = document.getElementById('progressContainer');
           const uploadProgress = document.getElementById('uploadProgress');
           const progressText = document.getElementById('progressText');
@@ -96,35 +107,49 @@ Data Sets:
               const name = nameInput.value.trim();
               const email = emailInput.value.trim();
               const description = descriptionInput.value.trim();
-              const files = fileInput.files;
-              const folders = folderInput.files;
+
+              // Collect files from each category
+              const proposalFiles = proposalFilesInput.files;
+              const planSetFiles = planSetFilesInput.files;
+              const takeOffFiles = takeOffFilesInput.files;
 
               // Validate inputs
-              if (!name || !email || (files.length === 0 && folders.length === 0)) {
-                  alert('Name, Email, and at least one file or folder are required.');
+              const totalFiles = proposalFiles.length + planSetFiles.length + takeOffFiles.length;
+              if (!name || !email || totalFiles === 0) {
+                  alert('Name, Email, and at least one file are required.');
                   return;
               }
 
-              // Prepare file data with relative paths
+              // Prepare file data with category information
               const fileData = [];
 
-              // Handle individual files
-              for (let i = 0; i < files.length; i++) {
-                  const file = files[i];
+              // Handle Proposal Files
+              for (let i = 0; i < proposalFiles.length; i++) {
+                  const file = proposalFiles[i];
                   fileData.push({
                       name: file.name,
-                      relativePath: file.name  // No folder structure
+                      category: 'proposal_files',
+                      relativePath: `proposal_files/${file.name}`
                   });
               }
 
-              // Handle folder files
-              for (let i = 0; i < folders.length; i++) {
-                  const file = folders[i];
-                  // webkitRelativePath provides the folder structure
-                  const relativePath = file.webkitRelativePath || file.name;
+              // Handle Plan Set Files
+              for (let i = 0; i < planSetFiles.length; i++) {
+                  const file = planSetFiles[i];
                   fileData.push({
                       name: file.name,
-                      relativePath: relativePath
+                      category: 'plan_set_files',
+                      relativePath: `plan_set_files/${file.name}`
+                  });
+              }
+
+              // Handle Take Off Files
+              for (let i = 0; i < takeOffFiles.length; i++) {
+                  const file = takeOffFiles[i];
+                  fileData.push({
+                      name: file.name,
+                      category: 'take_off_files',
+                      relativePath: `take_off_files/${file.name}`
                   });
               }
 
@@ -173,8 +198,22 @@ Data Sets:
 
                   // Upload files directly to GCS using the signed URLs
                   for (let i = 0; i < fileData.length; i++) {
-                      const file = (i < files.length) ? files[i] : folders[i - files.length];
-                      const relativePath = fileData[i].relativePath;
+                      const fileEntry = fileData[i];
+                      let file;
+                      let categoryPath;
+
+                      if (fileEntry.category === 'proposal_files') {
+                          file = proposalFiles[i];
+                          categoryPath = 'proposal_files';
+                      } else if (fileEntry.category === 'plan_set_files') {
+                          file = planSetFiles[i - proposalFiles.length];
+                          categoryPath = 'plan_set_files';
+                      } else if (fileEntry.category === 'take_off_files') {
+                          file = takeOffFiles[i - proposalFiles.length - planSetFiles.length];
+                          categoryPath = 'take_off_files';
+                      }
+
+                      const relativePath = fileEntry.relativePath;
                       const url = signedUrls[relativePath];
 
                       if (!url) {
@@ -208,7 +247,7 @@ Data Sets:
                   // sessionStorage.removeItem('formData');
 
                   progressText.textContent = 'Upload complete!';
-                  alert('Files and folders uploaded successfully.');
+                  alert('Files uploaded successfully.');
 
                   // Optionally, reset the form
                   form.reset();

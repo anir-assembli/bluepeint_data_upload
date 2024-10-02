@@ -100,7 +100,7 @@ def generate_signed_urls():
 
         name = sanitize_input(data.get('name'))
         email = sanitize_input(data.get('email'))
-        files = data.get('files')  # List of file paths
+        files = data.get('files')  # List of file paths with categories
 
         if not name or not email or not files:
             return jsonify({'error': 'Invalid input: name, email, or files are missing'}), 400
@@ -109,7 +109,14 @@ def generate_signed_urls():
 
         for file_info in files:
             filename = secure_filename(file_info['name'])
-            relative_path = file_info['relativePath']
+            category = file_info.get('category')
+            relative_path = file_info.get('relativePath')
+
+            if not category or not relative_path:
+                return jsonify({'error': f'Missing category or relativePath for file {filename}'}), 400
+
+            if category not in {'proposal_files', 'plan_set_files', 'take_off_files'}:
+                return jsonify({'error': f'Invalid category {category} for file {filename}'}), 400
 
             if not allowed_file(filename):
                 return jsonify({'error': f'File type not allowed: {filename}'}), 400
